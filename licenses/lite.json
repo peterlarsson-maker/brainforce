@@ -1,0 +1,5 @@
+{
+  "level": "Lite",
+  "features": ["Dashboard", "Knowledge: read-only"],
+  "max_users": 1
+}

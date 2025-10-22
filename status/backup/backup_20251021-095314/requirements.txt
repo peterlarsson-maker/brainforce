@@ -1,0 +1,3 @@
+﻿open-webui
+openai-whisper
+piper-tts

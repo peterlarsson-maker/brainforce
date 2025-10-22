@@ -1,0 +1,37 @@
+Sammanfattning:
+
+Backend: FastAPI (se tidigare leverans)
+
+Frontend: Next.js 14, Tailwind, Framer Motion, klar struktur
+
+Config och JSON: Alla licenser, roller, versioner, valideringsskript
+
+Mock-läge: Stöd i backend och UI
+
+Säkerhet: Ingen körning av extern/användarkod, ingen nätverksskrivning utom API
+
+Loggning: Lokalt, per dag
+
+Minne: SQLite i knowledge/, hanteras automatiskt
+
+Körning, lokalt:
+
+Backend:
+
+cd core
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+
+Frontend:
+
+cd ui
+npm install
+npm run dev
+
+
+Testa på http://localhost:3000
+ (UI)
+Backend: http://localhost:8000

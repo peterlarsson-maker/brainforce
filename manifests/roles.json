@@ -1,0 +1,12 @@
+[
+  {
+    "id": "default",
+    "name": "Standardanvändare",
+    "permissions": ["read", "write"]
+  },
+  {
+    "id": "admin",
+    "name": "Administratör",
+    "permissions": ["read", "write", "manage"]
+  }
+]

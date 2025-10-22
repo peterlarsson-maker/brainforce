@@ -1,0 +1,11 @@
+{
+  "version": "3.0.0",
+  "releaseDate": "2025-10-15",
+  "features": [
+    "OpenAI API-kompatibel",
+    "Rollhantering",
+    "Mock-läge",
+    "Lokalt minne (SQLite)",
+    "UI med Next.js + Tailwind"
+  ]
+}
