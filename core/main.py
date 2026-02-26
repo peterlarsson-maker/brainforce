@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core import api, memory, logger, mock
+from core.database import init_db
 import os
+
+# Ensure DB schema is initialized before the app starts handling requests
+init_db()
 
 app = FastAPI(
     title="BrainForce API",

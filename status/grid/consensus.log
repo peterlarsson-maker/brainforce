@@ -1,4 +1,0 @@
-{"ts": 1762001130, "role": "proposer", "id": "ea7bc0fc-a60d-4dde-bf4e-24e2a03e8f5a", "payload": {"task": "demo", "value": 42}}
-{"ts": 1762001130, "role": "collector", "proposal_id": "ea7bc0fc-a60d-4dde-bf4e-24e2a03e8f5a", "yes": 2, "no": 1}
-{"ts": 1762001130, "role": "aggregator", "proposal_id": "ea7bc0fc-a60d-4dde-bf4e-24e2a03e8f5a", "parts": [{"node": "n1", "ok": true}, {"node": "n2", "ok": true}, {"node": "n3", "ok": false}]}
-{"ts": 1762001130, "role": "validator", "proposal_id": "ea7bc0fc-a60d-4dde-bf4e-24e2a03e8f5a", "ok": true}

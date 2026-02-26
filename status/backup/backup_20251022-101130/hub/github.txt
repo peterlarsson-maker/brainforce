@@ -1,5 +1,0 @@
-def list_repos_mock():
-    return [
-        {"name": "brainforce", "url": "https://github.com/your-org/brainforce"},
-        {"name": "example-repo", "url": "https://github.com/your-org/example-repo"},
-    ]

@@ -6,3 +6,6 @@ __pycache__/
 .env
 .vscode/
 *.log
+status/
+config/keys/
+*.log
