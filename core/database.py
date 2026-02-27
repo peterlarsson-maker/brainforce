@@ -22,17 +22,32 @@ def get_db():
 
 
 def init_db():
-    """Initialize DB schema for memory (safe to call multiple times)."""
+    """Initialize DB schema for memory and users (safe to call multiple times)."""
     conn = get_db()
     c = conn.cursor()
+    # user table used for authentication
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password_hash TEXT,
+            role TEXT,
+            created_at TEXT
+        )
+    """)
+    # memory table now tracks user_id so that sessions are scoped
     c.execute("""
         CREATE TABLE IF NOT EXISTS memory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT,
+            user_id INTEGER,
             role TEXT,
             message TEXT,
-            timestamp TEXT
+            timestamp TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
         )
     """)
+    # index to speed lookups by session and user
+    c.execute("CREATE INDEX IF NOT EXISTS idx_memory_session ON memory(session_id)")
     conn.commit()
     conn.close()

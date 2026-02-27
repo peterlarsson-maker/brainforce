@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core import api, memory, logger, mock
+from core import auth
 from core.database import init_db
 import os
 
@@ -13,10 +14,19 @@ app = FastAPI(
     version="3.0.0"
 )
 
+# early sanity check: JWT_SECRET must be provided or authentication cannot work
+@app.on_event("startup")
+def _check_jwt_secret():
+    if not os.getenv("JWT_SECRET"):
+        # raising here prevents the app from starting and produces a clear message
+        raise RuntimeError("JWT_SECRET environment variable must be set for authentication")
+
 app.include_router(api.router, prefix="/api")
 app.include_router(memory.router, prefix="/memory")
 app.include_router(logger.router, prefix="/logs")
 app.include_router(mock.router, prefix="/mock")
+# authentication endpoints
+app.include_router(auth.router, prefix="/auth")
 
 app.add_middleware(
     CORSMiddleware,

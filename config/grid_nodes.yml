@@ -1,5 +1,0 @@
-self:
-  id: node-001
-  host: "http://localhost:8100"
-  description: "Local Apollo Prime instance"
-peers: []

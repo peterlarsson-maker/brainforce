@@ -1,1 +1,0 @@
-# License validator placeholder

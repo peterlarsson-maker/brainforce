@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi import APIRouter, HTTPException, Request, Header, Depends
 from pydantic import BaseModel
 import os
 
 from typing import List, Dict
 from core import memory as memory_module
 from core.memory import MemorySave
+from core.auth import get_current_user
 
 router = APIRouter()
 
@@ -15,7 +16,11 @@ class OpenAIRequest(BaseModel):
     max_tokens: int = 512
 
 @router.post("/openai/")
-def openai_proxy(req: OpenAIRequest, session_id: str = Header(None, alias="X-Session-Id")):
+def openai_proxy(
+    req: OpenAIRequest,
+    session_id: str = Header(None, alias="X-Session-Id"),
+    current_user: dict = Depends(get_current_user)
+):
     """Proxy to OpenAI that requires an X-Session-Id header for tracking.
 
     The session_id is required for downstream memory and logging.
@@ -25,14 +30,22 @@ def openai_proxy(req: OpenAIRequest, session_id: str = Header(None, alias="X-Ses
 
     # Persist the incoming user prompt so history is durable and complete
     try:
-        memory_module.save_memory(MemorySave(session_id=session_id, role="user", message=req.prompt))
-    except Exception:
-        # Don't fail the request if memory persistence fails; proceed without persistence
-        pass
+        memory_module.save_memory(
+            MemorySave(
+                session_id=session_id,
+                role="user",
+                message=req.prompt,
+                user_id=current_user["id"],
+            ),
+            current_user=current_user,
+        )
+    except Exception as exc:
+        # log to stdout for debugging; we intentionally do not abort the request
+        print(f"warning: failed to save prompt memory: {exc}")
 
     # Fetch recent memory for this session
     try:
-        history = memory_module.get_all_memory(session_id=session_id) or []
+        history = memory_module.get_all_memory(session_id=session_id, current_user=current_user) or []
     except Exception:
         history = []
 
@@ -117,9 +130,17 @@ def openai_proxy(req: OpenAIRequest, session_id: str = Header(None, alias="X-Ses
     if os.getenv("MOCK_MODE") == "1":
         # In mock mode, synthesize an assistant reply and persist it
         assistant_text = f"MOCK_REPLY: reply to {req.prompt[:64]}"
-        # Persist assistant reply to memory
+        # Persist assistant reply to memory (include user context)
         try:
-            memory_module.save_memory(MemorySave(session_id=session_id, role="assistant", message=assistant_text))
+            memory_module.save_memory(
+                MemorySave(
+                    session_id=session_id,
+                    role="assistant",
+                    message=assistant_text,
+                    user_id=current_user["id"],
+                ),
+                current_user=current_user,
+            )
         except Exception:
             pass
         return {"response": assistant_text, "session_id": session_id, "messages": messages}
@@ -127,6 +148,10 @@ def openai_proxy(req: OpenAIRequest, session_id: str = Header(None, alias="X-Ses
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=403, detail="Ingen API-nyckel satt")
+
+    # the session_id and user are implicitly associated; we don't allow an external
+    # caller to pretend to be someone else by setting the header differently.
+    # (current_user is already validated above.)
 
     # import requests lazily so module import works even when requests isn't installed
     import requests
@@ -159,9 +184,17 @@ def openai_proxy(req: OpenAIRequest, session_id: str = Header(None, alias="X-Ses
 
     if assistant_text:
         try:
-            memory_module.save_memory(MemorySave(session_id=session_id, role="assistant", message=assistant_text))
-        except Exception:
-            pass
+            memory_module.save_memory(
+                MemorySave(
+                    session_id=session_id,
+                    role="assistant",
+                    message=assistant_text,
+                    user_id=current_user["id"],
+                ),
+                current_user=current_user,
+            )
+        except Exception as exc:
+            print(f"warning: failed to save assistant memory: {exc}")
 
     if isinstance(result, dict):
         result.setdefault("session_id", session_id)

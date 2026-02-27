@@ -1,7 +1,0 @@
-import json
-import os
-
-def validate_license(file_path):
-    with open(file_path, "r") as f:
-        lic = json.load(f)
-    assert "level" in lic and "features" in lic and "max_users" in lic
