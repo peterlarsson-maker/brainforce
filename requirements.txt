@@ -1,0 +1,14 @@
+# BrainForce Core
+
+BrainForce Core is a local, session-aware AI engine.
+
+Features:
+- OpenAI-compatible API
+- Session-based memory
+- Turn-aware token trimming
+- Configurable token budget
+- Mock mode support
+- Test-covered core
+
+This repository contains only the AI engine.
+Experimental distributed/network layers have been archived.
