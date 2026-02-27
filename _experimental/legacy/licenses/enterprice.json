@@ -1,0 +1,13 @@
+{
+  "level": "Enterprise",
+  "features": [
+    "Dashboard",
+    "Knowledge: full",
+    "Roles",
+    "Settings",
+    "Licenses",
+    "API Access",
+    "Integrations"
+  ],
+  "max_users": 100
+}

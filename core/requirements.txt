@@ -1,9 +1,5 @@
 fastapi
 uvicorn
 pydantic
-sqlalchemy
-aiofiles
-python-dotenv
 requests
-sqlite-utils
 bcrypt

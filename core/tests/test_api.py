@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -104,6 +104,134 @@ def test_invalid_token_is_rejected(tmp_path, monkeypatch):
     client = TestClient(app)
 
     headers = {"Authorization": "Bearer notavalidtoken"}
+    r = client.post("/api/openai/", json={"prompt": "x"}, headers=headers)
+    assert r.status_code == 401
+
+
+def test_token_with_wrong_algorithm_rejected(tmp_path, monkeypatch):
+    """Token with alg != HS256 should be rejected."""
+    import core.database as database
+    db_file = tmp_path / "test_alg.db"
+    monkeypatch.setattr(database, "DB_PATH", str(db_file))
+    monkeypatch.setenv("JWT_SECRET", "secret")
+    database.init_db()
+    
+    from core.main import app
+    client = TestClient(app)
+    
+    # Create a token manually with wrong algorithm
+    from core.auth import _b64url_encode, _get_jwt_secret
+    import hmac
+    import hashlib
+    import json
+    
+    header = {"alg": "HS512", "typ": "JWT"}  # Wrong algorithm
+    payload = {"user_id": 1, "role": "user", "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp())}
+    
+    header_b = _b64url_encode(json.dumps(header).encode())
+    payload_b = _b64url_encode(json.dumps(payload).encode())
+    secret = _get_jwt_secret().encode()
+    sig = hmac.new(secret, f"{header_b}.{payload_b}".encode(), hashlib.sha256).digest()
+    sig_b = _b64url_encode(sig)
+    bad_token = f"{header_b}.{payload_b}.{sig_b}"
+    
+    headers = {"Authorization": f"Bearer {bad_token}"}
+    r = client.post("/api/openai/", json={"prompt": "x"}, headers=headers)
+    assert r.status_code == 401
+
+
+def test_token_missing_user_id_rejected(tmp_path, monkeypatch):
+    """Token without user_id claim should be rejected."""
+    import core.database as database
+    db_file = tmp_path / "test_no_uid.db"
+    monkeypatch.setattr(database, "DB_PATH", str(db_file))
+    monkeypatch.setenv("JWT_SECRET", "secret")
+    database.init_db()
+    
+    from core.main import app
+    client = TestClient(app)
+    
+    # Create a token manually without user_id
+    from core.auth import _b64url_encode, _get_jwt_secret
+    import hmac
+    import hashlib
+    import json
+    
+    header = {"alg": "HS256", "typ": "JWT"}
+    payload = {"role": "user", "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp())}  # Missing user_id
+    
+    header_b = _b64url_encode(json.dumps(header).encode())
+    payload_b = _b64url_encode(json.dumps(payload).encode())
+    secret = _get_jwt_secret().encode()
+    sig = hmac.new(secret, f"{header_b}.{payload_b}".encode(), hashlib.sha256).digest()
+    sig_b = _b64url_encode(sig)
+    bad_token = f"{header_b}.{payload_b}.{sig_b}"
+    
+    headers = {"Authorization": f"Bearer {bad_token}"}
+    r = client.post("/api/openai/", json={"prompt": "x"}, headers=headers)
+    assert r.status_code == 401
+
+
+def test_token_missing_role_rejected(tmp_path, monkeypatch):
+    """Token without role claim should be rejected."""
+    import core.database as database
+    db_file = tmp_path / "test_no_role.db"
+    monkeypatch.setattr(database, "DB_PATH", str(db_file))
+    monkeypatch.setenv("JWT_SECRET", "secret")
+    database.init_db()
+    
+    from core.main import app
+    client = TestClient(app)
+    
+    # Create a token manually without role
+    from core.auth import _b64url_encode, _get_jwt_secret
+    import hmac
+    import hashlib
+    import json
+    
+    header = {"alg": "HS256", "typ": "JWT"}
+    payload = {"user_id": 1, "exp": int((datetime.utcnow() + timedelta(hours=1)).timestamp())}  # Missing role
+    
+    header_b = _b64url_encode(json.dumps(header).encode())
+    payload_b = _b64url_encode(json.dumps(payload).encode())
+    secret = _get_jwt_secret().encode()
+    sig = hmac.new(secret, f"{header_b}.{payload_b}".encode(), hashlib.sha256).digest()
+    sig_b = _b64url_encode(sig)
+    bad_token = f"{header_b}.{payload_b}.{sig_b}"
+    
+    headers = {"Authorization": f"Bearer {bad_token}"}
+    r = client.post("/api/openai/", json={"prompt": "x"}, headers=headers)
+    assert r.status_code == 401
+
+
+def test_token_missing_exp_rejected(tmp_path, monkeypatch):
+    """Token without exp claim should be rejected."""
+    import core.database as database
+    db_file = tmp_path / "test_no_exp.db"
+    monkeypatch.setattr(database, "DB_PATH", str(db_file))
+    monkeypatch.setenv("JWT_SECRET", "secret")
+    database.init_db()
+    
+    from core.main import app
+    client = TestClient(app)
+    
+    # Create a token manually without exp
+    from core.auth import _b64url_encode, _get_jwt_secret
+    import hmac
+    import hashlib
+    import json
+    
+    header = {"alg": "HS256", "typ": "JWT"}
+    payload = {"user_id": 1, "role": "user"}  # Missing exp
+    
+    header_b = _b64url_encode(json.dumps(header).encode())
+    payload_b = _b64url_encode(json.dumps(payload).encode())
+    secret = _get_jwt_secret().encode()
+    sig = hmac.new(secret, f"{header_b}.{payload_b}".encode(), hashlib.sha256).digest()
+    sig_b = _b64url_encode(sig)
+    bad_token = f"{header_b}.{payload_b}.{sig_b}"
+    
+    headers = {"Authorization": f"Bearer {bad_token}"}
     r = client.post("/api/openai/", json={"prompt": "x"}, headers=headers)
     assert r.status_code == 401
 
@@ -355,3 +483,120 @@ def test_history_trimming_with_large_history(tmp_path, monkeypatch):
 
     # Ensure we didn't include the entire original history (trimming occurred)
     assert len(messages) < total_msgs + 1
+
+
+def test_login_rate_limit_5_attempts_allowed(tmp_path, monkeypatch):
+    """5 failed attempts should be allowed without 429."""
+    import core.database as database
+    db_file = tmp_path / "test_rate_limit.db"
+    monkeypatch.setattr(database, "DB_PATH", str(db_file))
+    monkeypatch.setenv("JWT_SECRET", "testsecret")
+    database.init_db()
+    
+    from core.main import app
+    from core.auth import _login_attempts
+    # Reset rate limiter state for clean test
+    _login_attempts.clear()
+    
+    client = TestClient(app)
+    
+    # Create a user
+    from core.database import get_db
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+        ("testuser", hash_password("correctpass"), "user", datetime.utcnow().isoformat()),
+    )
+    conn.commit()
+    conn.close()
+    
+    # 5 failed attempts should all return 401 (not 429)
+    for attempt in range(1, 6):
+        r = client.post("/auth/login", json={"username": "testuser", "password": "wrongpass"})
+        assert r.status_code == 401, f"Attempt {attempt} should return 401"
+
+
+def test_login_rate_limit_6th_attempt_returns_429(tmp_path, monkeypatch):
+    """6th failed attempt should return 429."""
+    import core.database as database
+    db_file = tmp_path / "test_rate_limit_429.db"
+    monkeypatch.setattr(database, "DB_PATH", str(db_file))
+    monkeypatch.setenv("JWT_SECRET", "testsecret")
+    database.init_db()
+    
+    from core.main import app
+    from core.auth import _login_attempts
+    # Reset rate limiter state for clean test
+    _login_attempts.clear()
+    
+    client = TestClient(app)
+    
+    # Create a user
+    from core.database import get_db
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+        ("testuser", hash_password("correctpass"), "user", datetime.utcnow().isoformat()),
+    )
+    conn.commit()
+    conn.close()
+    
+    # 5 failed attempts
+    for attempt in range(1, 6):
+        r = client.post("/auth/login", json={"username": "testuser", "password": "wrongpass"})
+        assert r.status_code == 401
+    
+    # 6th attempt should return 429
+    r = client.post("/auth/login", json={"username": "testuser", "password": "wrongpass"})
+    assert r.status_code == 429
+    assert "Too many failed login attempts" in r.json().get("detail", "")
+
+
+def test_login_rate_limit_reset_on_success(tmp_path, monkeypatch):
+    """Successful login should reset the attempt counter."""
+    import core.database as database
+    db_file = tmp_path / "test_rate_limit_reset.db"
+    monkeypatch.setattr(database, "DB_PATH", str(db_file))
+    monkeypatch.setenv("JWT_SECRET", "testsecret")
+    database.init_db()
+    
+    from core.main import app
+    from core.auth import _login_attempts
+    # Reset rate limiter state for clean test
+    _login_attempts.clear()
+    
+    client = TestClient(app)
+    
+    # Create a user
+    from core.database import get_db
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+        ("testuser", hash_password("correctpass"), "user", datetime.utcnow().isoformat()),
+    )
+    conn.commit()
+    conn.close()
+    
+    # 3 failed attempts
+    for attempt in range(1, 4):
+        r = client.post("/auth/login", json={"username": "testuser", "password": "wrongpass"})
+        assert r.status_code == 401
+    
+    # Successful login (counter should reset)
+    r = client.post("/auth/login", json={"username": "testuser", "password": "correctpass"})
+    assert r.status_code == 200
+    assert "access_token" in r.json()
+    
+    # After reset, we should be able to make 5 more failed attempts without hitting 429
+    for attempt in range(1, 6):
+        r = client.post("/auth/login", json={"username": "testuser", "password": "wrongpass"})
+        assert r.status_code == 401, f"Attempt {attempt} after reset should return 401"
+    
+    # 6th attempt should hit rate limit again
+    r = client.post("/auth/login", json={"username": "testuser", "password": "wrongpass"})
+    assert r.status_code == 429
+
+

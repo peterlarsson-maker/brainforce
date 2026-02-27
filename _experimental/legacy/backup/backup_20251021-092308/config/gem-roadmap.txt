@@ -1,0 +1,58 @@
+GEM DEVELOPMENT ROADMAP
+------------------------
+Status: Phase 1 (Core AI)
+Goal: Stabil grund i AnythingLLM + Ollama + lokal datorprofil.
+
+PHASE 1 ✅  (Nu)
+----------------
+- System prompt (klar)
+- Modellinställningar (klar)
+- system_profile.json (klar)
+- roadmap (klar)
+- AnythingLLM aktiv med Ollama (mistral + llama3.1)
+- Lokalt nav D:\Gem_Local\
+- BIOS och maskin optimerad (klar)
+
+Next:
+→ Lägg in Workspace Instruction (för dialoglogik)
+→ Starta Gem och bekräfta systemprofil
+→ Testa kommando: "Gem, summera vad du förstår om min dator och mål."
+
+PHASE 2 ⚙️  (Kommande)
+----------------
+- Mini-Hub (lokal Node.js-server)
+  - endpoints: /status, /file, /git
+  - memory.json (persistent context)
+  - loggning till D:\Gem_Local\hub\logs
+- File I/O API för att läsa/skriva konfigfiler
+- Grundläggande versionhantering (commit till GitHub via hub)
+
+PHASE 3 🧠  (Utbyggnad)
+----------------
+- Panel UI (React + Tailwind) med flikar för:
+  - Grundinställningar
+  - AI-modeller (Ollama)
+  - Hub & Git
+  - Avatar/VR & grafik
+- VS Code- och GitHub-integration
+- Automatisk backup till GitHub (private repo)
+
+PHASE 4 🚀  (Avancerad)
+----------------
+- Lexie-integration (AI-planering och logg)
+- VR/Avatar-styrning i 3D (Unity/Unreal/VRChat)
+- Fler AI-agenter (Gem + Lexie + VR)
+- Grafisk AI (Stable Diffusion / SDXL-lite)
+- Automatisk trådbyte via hubben
+- Röststyrning och feedback-loopar
+
+Notes:
+Gem ska alltid veta vilken fas som är aktiv och anpassa svar därefter.
+Om roadmap uppdateras → Gem ska läsa om filen och uppdatera sin förståelse.
+
+Current system summary:
+- i5-10600K @ 4.1GHz (OC 4.6GHz)
+- 32GB DDR4 + 64GB virtuell
+- GTX 1060 6GB
+- NVMe 1TB (C:), SATA 240GB (D:)
+- Windows 11 Pro

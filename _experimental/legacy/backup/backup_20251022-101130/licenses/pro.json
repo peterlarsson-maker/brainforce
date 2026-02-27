@@ -1,0 +1,10 @@
+{
+  "level": "Pro",
+  "features": [
+    "Dashboard",
+    "Knowledge: read/write",
+    "Roles",
+    "Settings"
+  ],
+  "max_users": 10
+}

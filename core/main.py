@@ -28,9 +28,14 @@ app.include_router(mock.router, prefix="/mock")
 # authentication endpoints
 app.include_router(auth.router, prefix="/auth")
 
+# Read CORS allowed origins from environment variable or default to localhost development
+cors_origins_str = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+# Parse comma-separated list and strip whitespace
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Anpassa vid deployment!
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

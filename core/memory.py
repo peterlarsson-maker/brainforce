@@ -24,31 +24,34 @@ def save_memory(data: MemorySave, current_user: dict = Depends(get_current_user)
 
     uid = current_user["id"]
     conn = get_db()
-    c = conn.cursor()
-    # session_id must not be reused by another user
-    c.execute("SELECT user_id FROM memory WHERE session_id = ? LIMIT 1", (data.session_id,))
-    row = c.fetchone()
-    if row and row["user_id"] != uid:
-        raise HTTPException(status_code=400, detail="session_id already used by another user")
+    try:
+        c = conn.cursor()
+        # session_id must not be reused by another user
+        c.execute("SELECT user_id FROM memory WHERE session_id = ? LIMIT 1", (data.session_id,))
+        row = c.fetchone()
+        if row and row["user_id"] != uid:
+            raise HTTPException(status_code=400, detail="session_id already used by another user")
 
-    # ensure schema is still present (init_db handles this on startup too)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS memory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT,
-            user_id INTEGER,
-            role TEXT,
-            message TEXT,
-            timestamp TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+        # ensure schema is still present (init_db handles this on startup too)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS memory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                user_id INTEGER,
+                role TEXT,
+                message TEXT,
+                timestamp TEXT,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        """)
+        c.execute(
+            "INSERT INTO memory (session_id, user_id, role, message, timestamp) VALUES (?, ?, ?, ?, ?)",
+            (data.session_id, uid, data.role or "", data.message, datetime.now(timezone.utc).isoformat())
         )
-    """)
-    c.execute(
-        "INSERT INTO memory (session_id, user_id, role, message, timestamp) VALUES (?, ?, ?, ?, ?)",
-        (data.session_id, uid, data.role or "", data.message, datetime.now(timezone.utc).isoformat())
-    )
-    conn.commit()
-    return {"status": "saved"}
+        conn.commit()
+        return {"status": "saved"}
+    finally:
+        conn.close()
 
 
 @router.get("/all/")
@@ -59,16 +62,19 @@ def get_all_memory(session_id: Optional[str] = None, current_user: dict = Depend
     """
     uid = current_user["id"]
     conn = get_db()
-    c = conn.cursor()
-    if session_id:
-        c.execute(
-            "SELECT * FROM memory WHERE session_id = ? AND user_id = ? ORDER BY id DESC LIMIT 200",
-            (session_id, uid)
-        )
-    else:
-        c.execute("SELECT * FROM memory WHERE user_id = ? ORDER BY id DESC LIMIT 200", (uid,))
-    rows = c.fetchall()
-    return [dict(row) for row in rows]
+    try:
+        c = conn.cursor()
+        if session_id:
+            c.execute(
+                "SELECT * FROM memory WHERE session_id = ? AND user_id = ? ORDER BY id DESC LIMIT 200",
+                (session_id, uid)
+            )
+        else:
+            c.execute("SELECT * FROM memory WHERE user_id = ? ORDER BY id DESC LIMIT 200", (uid,))
+        rows = c.fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
 
 
 @router.get("/session/{session_id}/")
