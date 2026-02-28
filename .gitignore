@@ -9,3 +9,7 @@ __pycache__/
 status/
 config/keys/
 *.log
+
+# local sqlite database
+knowledge/brainforce.db
+brainforce.db
